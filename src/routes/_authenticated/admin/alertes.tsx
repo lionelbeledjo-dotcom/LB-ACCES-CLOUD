@@ -1,25 +1,57 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, Clock, KeyRound, RefreshCw } from "lucide-react";
-import { PageHeader } from "@/components/admin-ui";
+import { AlertTriangle, Clock, KeyRound, RefreshCw, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { PageHeader, btnGhost } from "@/components/admin-ui";
+import { toast } from "sonner";
+import { resolveSecurityAlert } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/alertes")({
   component: AlertsPage,
 });
 
 function fmt(d: string) { return new Date(d).toLocaleDateString("fr-FR"); }
+function fmtTime(d: string) { return new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }); }
+
+const severityColors: Record<string, string> = {
+  high: "var(--destructive)",
+  medium: "var(--warning)",
+  low: "var(--muted-foreground)",
+};
 
 function AlertsPage() {
+  const qc = useQueryClient();
+  const resolve = useServerFn(resolveSecurityAlert);
   const todayStr = new Date().toISOString().slice(0, 10);
+  const in3 = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
   const in7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+
+  const { data: securityAlerts = [] } = useQuery({
+    queryKey: ["security-alerts"],
+    queryFn: async () => (await supabase
+      .from("security_alerts" as never)
+      .select("id, alert_type, severity, description, created_at, is_resolved, client_id, client:clients(full_name)" as never)
+      .eq("is_resolved" as never, false)
+      .order("created_at" as never, { ascending: false })
+      .limit(20)).data || [],
+  });
+
+  const { data: expiring3Days = [] } = useQuery({
+    queryKey: ["alerts-expiring-3d"],
+    queryFn: async () => (await supabase
+      .from("service_profiles")
+      .select("id, end_date, client:clients(full_name), service_account:service_accounts(account_label, service:services(name))")
+      .not("end_date", "is", null).lte("end_date", in3).gte("end_date", todayStr).eq("status", "occupe")
+      .order("end_date")).data || [],
+  });
 
   const { data: expiringProfiles = [] } = useQuery({
     queryKey: ["alerts-expiring"],
     queryFn: async () => (await supabase
       .from("service_profiles")
       .select("id, end_date, client:clients(full_name), service_account:service_accounts(account_label, service:services(name))")
-      .not("end_date", "is", null).lte("end_date", in7).gte("end_date", todayStr).eq("status", "occupe")
+      .not("end_date", "is", null).lte("end_date", in7).gt("end_date", in3).eq("status", "occupe")
       .order("end_date")).data || [],
   });
 
@@ -44,12 +76,67 @@ function AlertsPage() {
     },
   });
 
+  const resolveMut = useMutation({
+    mutationFn: async (id: string) => resolve({ data: { id } }),
+    onSuccess: () => { toast.success("Alerte résolue"); qc.invalidateQueries({ queryKey: ["security-alerts"] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
   return (
     <>
       <PageHeader title="Alertes" subtitle="Vue consolidée des actions à mener" />
 
+      {/* Security Alerts Section */}
+      {(securityAlerts as Array<{ id: string; alert_type: string; severity: string; description: string; created_at: string; client: { full_name: string } | null }>).length > 0 && (
+        <div className="card-elegant p-5 mb-5 border-l-4" style={{ borderLeftColor: "var(--destructive)" }}>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-[color-mix(in_oklab,var(--destructive)_14%,transparent)] text-[color:var(--destructive)]">
+              <ShieldAlert className="w-4 h-4" />
+            </span>
+            <div className="flex-1">
+              <h2 className="font-display text-base font-semibold">Alertes de sécurité</h2>
+              <p className="text-xs text-muted-foreground">Activités suspectes détectées automatiquement</p>
+            </div>
+            <span className="text-2xl font-display font-semibold text-[color:var(--destructive)]">{(securityAlerts as unknown[]).length}</span>
+          </div>
+          <div className="space-y-2">
+            {(securityAlerts as Array<{ id: string; alert_type: string; severity: string; description: string; created_at: string; client: { full_name: string } | null }>).map((alert) => (
+              <div key={alert.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/40">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 rounded-full" style={{ background: severityColors[alert.severity] || severityColors.medium }} />
+                    <p className="text-sm font-medium truncate">{alert.description}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {alert.client?.full_name || "—"} · {fmtTime(alert.created_at)} · {alert.alert_type.replace(/_/g, " ")}
+                  </p>
+                </div>
+                <button
+                  onClick={() => resolveMut.mutate(alert.id)}
+                  className={`${btnGhost} text-xs gap-1`}
+                  disabled={resolveMut.isPending}
+                  title="Marquer comme résolu"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Résoudre
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-5">
-        <Card icon={Clock} title="Profils expirant (7 jours)" tone="warning" count={expiringProfiles.length}>
+        <Card icon={AlertTriangle} title="Expirent dans 3 jours" tone="danger" count={expiring3Days.length}>
+          {expiring3Days.map((p) => {
+            const c = p.client as { full_name: string } | null;
+            const a = p.service_account as { account_label: string; service: { name: string } | null } | null;
+            return (
+              <Row key={p.id} title={c?.full_name || ""} subtitle={`${a?.service?.name} · ${a?.account_label}`} side={fmt(p.end_date as string)} />
+            );
+          })}
+        </Card>
+
+        <Card icon={Clock} title="Expirent dans 4-7 jours" tone="warning" count={expiringProfiles.length}>
           {expiringProfiles.map((p) => {
             const c = p.client as { full_name: string } | null;
             const a = p.service_account as { account_label: string; service: { name: string } | null } | null;

@@ -107,13 +107,14 @@ const serviceSchema = z.object({
   default_slots: z.number().int().min(1).max(50).default(5),
   icon: z.string().max(40).optional().nullable(),
   instructions_template: z.string().max(2000).optional().nullable(),
+  is_active: z.boolean().optional(),
 });
 
 export const saveService = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => serviceSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: data.name,
       category: data.category || null,
       description: data.description || null,
@@ -121,12 +122,15 @@ export const saveService = createServerFn({ method: "POST" })
       icon: data.icon || null,
       instructions_template: data.instructions_template || null,
     };
+    if (data.is_active !== undefined) payload.is_active = data.is_active;
     if (data.id) {
-      const { error } = await context.supabase.from("services").update(payload).eq("id", data.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await context.supabase.from("services").update(payload as any).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
-    const { data: ins, error } = await context.supabase.from("services").insert(payload).select("id").single();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: ins, error } = await context.supabase.from("services").insert(payload as any).select("id").single();
     if (error) throw new Error(error.message);
     await logAudit(context.userId, "service_created", { id: ins.id });
     return { id: ins.id };
@@ -438,4 +442,20 @@ export const seedDemoData = createServerFn({ method: "POST" })
     await logAudit(context.userId, "demo_seed_loaded", { clients: insertedClients.length });
 
     return { ok: true, codes: demoCodes };
+  });
+
+// ---------- SECURITY ALERTS ----------
+export const resolveSecurityAlert = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabaseAdmin as any)
+      .from("security_alerts")
+      .update({ is_resolved: true, resolved_by: context.userId, resolved_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await logAudit(context.userId, "security_alert_resolved", { alert_id: data.id });
+    return { ok: true };
   });

@@ -23,6 +23,7 @@ import {
   getClientSpace,
   revealClientPassword,
   submitSupportRequest,
+  trackCredentialCopy,
 } from "@/lib/access.functions";
 
 export const Route = createFileRoute("/espace/$token")({
@@ -46,6 +47,7 @@ function ClientPortal() {
   const fetchSpace = useServerFn(getClientSpace);
   const reveal = useServerFn(revealClientPassword);
   const support = useServerFn(submitSupportRequest);
+  const trackCopy = useServerFn(trackCredentialCopy);
 
   const { data, isLoading } = useQuery({
     queryKey: ["client-space", token],
@@ -81,10 +83,13 @@ function ClientPortal() {
     },
   });
 
-  const copy = async (text: string, label: string) => {
+  const copy = async (text: string, label: string, profileId?: string) => {
     try {
       await navigator.clipboard.writeText(text);
       toast.success(`${label} copié`);
+      if (profileId) {
+        trackCopy({ data: { token, profileId, field: label } }).catch(() => {});
+      }
     } catch {
       toast.error("Impossible de copier");
     }
@@ -190,7 +195,7 @@ function ClientPortal() {
                       </span>
                     }
                     copyValue={p.profile_name || `Profil ${p.profile_number}`}
-                    onCopy={copy}
+                    onCopy={(text, label) => copy(text, label, p.id)}
                     copyLabel="Profil"
                   />
                   {p.profile_pin && (
@@ -199,7 +204,7 @@ function ClientPortal() {
                       label="PIN du profil"
                       value={<span className="font-mono">{p.profile_pin}</span>}
                       copyValue={p.profile_pin}
-                      onCopy={copy}
+                      onCopy={(text, label) => copy(text, label, p.id)}
                       copyLabel="PIN"
                     />
                   )}
@@ -209,7 +214,7 @@ function ClientPortal() {
                       label="Email de connexion"
                       value={<span className="break-all">{acc.login_email}</span>}
                       copyValue={acc.login_email}
-                      onCopy={copy}
+                      onCopy={(text, label) => copy(text, label, p.id)}
                       copyLabel="Email"
                     />
                   )}

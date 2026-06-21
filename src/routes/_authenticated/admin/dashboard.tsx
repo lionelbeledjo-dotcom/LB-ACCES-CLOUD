@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, UserCheck, KeyRound, Layers, Wallet, AlertCircle, TrendingUp, Calendar } from "lucide-react";
+import { Users, UserCheck, KeyRound, Layers, Wallet, AlertCircle, TrendingUp, Calendar, ShieldAlert, Clock } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { getDashboardStats } from "@/lib/dashboard.functions";
 import { StatCard } from "@/components/StatCard";
@@ -52,7 +52,9 @@ function Dashboard() {
         <StatCard icon={Wallet} label="Revenu du mois" value={fmtMoney(t.currentMonthRevenue)} accent="success" />
         <StatCard icon={TrendingUp} label="Paiements en attente" value={fmtMoney(t.pendingAmount)} accent="warning" />
         <StatCard icon={AlertCircle} label="Clients suspendus" value={t.suspendedClients} accent="danger" />
+        <StatCard icon={Clock} label="Expirent sous 3j" value={t.expiring3Days} accent="danger" />
         <StatCard icon={Calendar} label="Expirent sous 7j" value={data.expiringSoon.length} accent="warning" />
+        <StatCard icon={ShieldAlert} label="Alertes sécurité" value={t.securityAlerts} accent="danger" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5 mt-6">

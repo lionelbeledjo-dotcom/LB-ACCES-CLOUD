@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_authenticated/admin/services")({
   component: ServicesPage,
 });
 
-type Service = { id: string; name: string; category: string | null; description: string | null; default_slots: number; icon: string | null; instructions_template: string | null };
+type Service = { id: string; name: string; category: string | null; description: string | null; default_slots: number; icon: string | null; instructions_template: string | null; is_active: boolean };
 
 function ServicesPage() {
   const qc = useQueryClient();
@@ -25,7 +25,7 @@ function ServicesPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("services").select("*").order("name");
       if (error) throw error;
-      return data as Service[];
+      return data as unknown as Service[];
     },
   });
 
@@ -57,13 +57,25 @@ function ServicesPage() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {services.map((s) => (
-          <div key={s.id} className="card-elegant p-5">
+          <div key={s.id} className={`card-elegant p-5 ${!s.is_active ? "opacity-50" : ""}`}>
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h2 className="font-display text-lg font-semibold">{s.name}</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-display text-lg font-semibold">{s.name}</h2>
+                  {!s.is_active && <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">Inactif</span>}
+                </div>
                 <p className="text-xs text-muted-foreground">{s.category || "—"}</p>
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1 items-center">
+                <label className="relative inline-flex items-center cursor-pointer" title={s.is_active ? "Désactiver" : "Activer"}>
+                  <input
+                    type="checkbox"
+                    checked={s.is_active}
+                    onChange={() => saveMut.mutate({ id: s.id, name: s.name, default_slots: s.default_slots, is_active: !s.is_active })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-[color:var(--primary)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                </label>
                 <button onClick={() => setEditing(s)} className="p-2 rounded-md hover:bg-accent"><Edit2 className="w-4 h-4" /></button>
                 <button onClick={() => { if (confirm(`Supprimer ${s.name} ?`)) delMut.mutate(s.id); }} className="p-2 rounded-md text-[color:var(--destructive)] hover:bg-[color-mix(in_oklab,var(--destructive)_12%,transparent)]"><Trash2 className="w-4 h-4" /></button>
               </div>

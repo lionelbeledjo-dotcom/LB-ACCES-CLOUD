@@ -9,6 +9,8 @@ export const getDashboardStats = createServerFn({ method: "GET" })
     const in7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
     const todayStr = today.toISOString().slice(0, 10);
 
+    const in3 = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+
     const [
       { count: totalClients },
       { count: activeClients },
@@ -18,6 +20,8 @@ export const getDashboardStats = createServerFn({ method: "GET" })
       { data: revenuePaid },
       { data: pendingPaymentsRows },
       { data: expSoon },
+      { count: expiring3d },
+      { count: securityAlertsCount },
     ] = await Promise.all([
       supa.from("clients").select("*", { count: "exact", head: true }),
       supa.from("clients").select("*", { count: "exact", head: true }).eq("status", "actif"),
@@ -39,6 +43,15 @@ export const getDashboardStats = createServerFn({ method: "GET" })
         .eq("status", "occupe")
         .order("end_date", { ascending: true })
         .limit(10),
+      supa
+        .from("service_profiles")
+        .select("*", { count: "exact", head: true })
+        .not("end_date", "is", null)
+        .lte("end_date", in3)
+        .gte("end_date", todayStr)
+        .eq("status", "occupe"),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supa as any).from("security_alerts").select("*", { count: "exact", head: true }).eq("is_resolved", false),
     ]);
 
     const occupied = (profilesAll || []).filter((p) => p.status === "occupe").length;
@@ -69,6 +82,8 @@ export const getDashboardStats = createServerFn({ method: "GET" })
         freeProfiles: free,
         currentMonthRevenue: currentMonth,
         pendingAmount,
+        expiring3Days: expiring3d || 0,
+        securityAlerts: securityAlertsCount || 0,
       },
       monthlyRevenue,
       expiringSoon: expSoon || [],

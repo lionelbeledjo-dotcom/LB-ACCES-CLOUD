@@ -12,6 +12,7 @@ const actionLabels: Record<string, string> = {
   client_login_success: "Connexion client",
   client_login_failed: "Tentative échouée",
   client_credential_revealed: "Mot de passe consulté (client)",
+  client_credential_copied: "Identifiant copié (client)",
   admin_credential_revealed: "Mot de passe consulté (admin)",
   client_created: "Client créé",
   client_updated: "Client modifié",
@@ -25,6 +26,7 @@ const actionLabels: Record<string, string> = {
   client_support_request: "Demande support",
   demo_seed_loaded: "Données démo chargées",
   service_created: "Service créé",
+  security_alert_resolved: "Alerte sécurité résolue",
 };
 
 function AuditPage() {

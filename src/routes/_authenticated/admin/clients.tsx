@@ -34,7 +34,19 @@ function ClientsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [editing, setEditing] = useState<Partial<Client> | null>(null);
-  const [generatedCode, setGeneratedCode] = useState<{ clientName: string; code: string } | null>(null);
+  const [generatedCode, setGeneratedCode] = useState<{ clientName: string; code: string; clientId: string } | null>(null);
+
+  const { data: welcomeTemplate } = useQuery({
+    queryKey: ["template-welcome"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("message_templates" as never)
+        .select("content" as never)
+        .eq("name" as never, "welcome_access")
+        .maybeSingle();
+      return (data as { content: string } | null)?.content || null;
+    },
+  });
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["clients"],
@@ -69,7 +81,7 @@ function ClientsPage() {
       genCode({ data: { client_id: id, expires_at: expiresAt || null } }),
     onSuccess: (res, vars) => {
       const c = clients.find((x) => x.id === vars.id);
-      setGeneratedCode({ clientName: c?.full_name || "", code: res.code });
+      setGeneratedCode({ clientName: c?.full_name || "", code: res.code, clientId: vars.id });
       qc.invalidateQueries({ queryKey: ["clients"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
@@ -236,12 +248,21 @@ function ClientsPage() {
               </button>
               <button
                 onClick={() => {
-                  const c = clients.find((x) => x.full_name === generatedCode.clientName);
+                  const c = clients.find((x) => x.id === generatedCode.clientId);
                   const tel = (c?.whatsapp || c?.phone || "").replace(/\D/g, "");
-                  const msg = encodeURIComponent(
-                    `Bonjour ${generatedCode.clientName}, votre espace client LB Access Cloud est prêt. Code d'accès : ${generatedCode.code}. Connectez-vous sur ${window.location.origin} pour récupérer vos informations. Merci.`,
-                  );
-                  if (tel) window.open(`https://wa.me/${tel}?text=${msg}`, "_blank");
+                  let msg: string;
+                  if (welcomeTemplate) {
+                    msg = welcomeTemplate
+                      .replace("{{nom}}", generatedCode.clientName)
+                      .replace("{{service}}", "votre service")
+                      .replace("{{lien}}", window.location.origin)
+                      .replace("{{code}}", generatedCode.code)
+                      .replace("{{date_expiration}}", "—");
+                  } else {
+                    msg = `Bonjour ${generatedCode.clientName}, votre espace client LB Access Cloud est prêt.\n\nConnectez-vous sur ${window.location.origin}\nCode d'accès : ${generatedCode.code}\n\nMerci de ne pas partager ce code.\n\n— LB Access Cloud`;
+                  }
+                  if (tel) window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank");
+                  else toast.error("Aucun numéro WhatsApp enregistré");
                 }}
                 className={btnPrimary}
               >

@@ -81,11 +81,40 @@ export const verifyAccessCode = createServerFn({ method: "POST" })
       .update({ last_used_at: new Date().toISOString() })
       .eq("id", codeRow.id);
 
+    // Mark login attempt as successful
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabaseAdmin as any).from("login_attempts")
+      .update({ success: true })
+      .eq("code_hash", hash)
+      .order("attempted_at", { ascending: false })
+      .limit(1);
+
     await supabaseAdmin.from("audit_logs").insert({
       client_id: client.id,
       action: "client_login_success",
       metadata: { code_id: codeRow.id },
     });
+
+    // Fraud detection: check if code used more than 10 times in 24h
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: dailyUses } = await supabaseAdmin
+      .from("audit_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("action", "client_login_success")
+      .eq("client_id", client.id)
+      .gte("created_at", oneDayAgo);
+
+    if ((dailyUses ?? 0) > 10) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabaseAdmin as any).from("security_alerts").insert({
+        client_id: client.id,
+        code_id: codeRow.id,
+        alert_type: "excessive_logins",
+        severity: "high",
+        description: `Code utilisé ${dailyUses} fois en 24h — possible partage non autorisé`,
+        metadata: { daily_count: dailyUses },
+      });
+    }
 
     const token = signClientToken(client.id, codeRow.id);
     return { ok: true as const, token };
@@ -157,6 +186,50 @@ export const revealClientPassword = createServerFn({ method: "POST" })
     });
 
     return { ok: true as const, password };
+  });
+
+// Track credential copy events
+const trackCopySchema = z.object({
+  token: z.string().min(8),
+  profileId: z.string().uuid(),
+  field: z.string().max(40),
+});
+
+export const trackCredentialCopy = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => trackCopySchema.parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { verifyClientToken } = await import("./crypto.server");
+    const auth = verifyClientToken(data.token);
+    if (!auth) return { ok: false as const };
+
+    await supabaseAdmin.from("audit_logs").insert({
+      client_id: auth.clientId,
+      action: "client_credential_copied",
+      metadata: { profile_id: data.profileId, field: data.field },
+    });
+
+    // Alert if credentials copied too many times (>5 in 1h)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count } = await supabaseAdmin
+      .from("audit_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("action", "client_credential_copied")
+      .eq("client_id", auth.clientId)
+      .gte("created_at", oneHourAgo);
+
+    if ((count ?? 0) > 5) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabaseAdmin as any).from("security_alerts").insert({
+        client_id: auth.clientId,
+        alert_type: "excessive_copies",
+        severity: "medium",
+        description: `Identifiants copiés ${count} fois en 1h — activité suspecte`,
+        metadata: { hourly_count: count },
+      });
+    }
+
+    return { ok: true as const };
   });
 
 const supportSchema = z.object({
