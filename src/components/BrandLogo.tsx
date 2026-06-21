@@ -7,7 +7,7 @@ export function BrandLogo({ size = "md", inverted = false }: { size?: "sm" | "md
     lg: { box: "w-14 h-14", text: "text-2xl", sub: "text-xs" },
   }[size];
   return (
-    <Link to="/" className="inline-flex items-center gap-3 group">
+    <Link to="/client/access" className="inline-flex items-center gap-3 group">
       <span
         className={`${sizes.box} rounded-xl flex items-center justify-center font-display font-bold shadow-gold`}
         style={{

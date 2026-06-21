@@ -113,7 +113,7 @@ function ClientPortal() {
             Votre session a expiré. Veuillez vous reconnecter avec votre code.
           </p>
           <button
-            onClick={() => navigate({ to: "/" })}
+            onClick={() => navigate({ to: "/client/access" })}
             className="mt-5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm"
           >
             Retour à l'accueil
@@ -133,7 +133,7 @@ function ClientPortal() {
     <div className="min-h-screen">
       <header className="px-4 sm:px-6 py-5 flex items-center justify-between border-b border-border bg-card/60 backdrop-blur">
         <BrandLogo size="sm" />
-        <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">Quitter</Link>
+        <Link to="/client/access" className="text-xs text-muted-foreground hover:text-foreground">Quitter</Link>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
