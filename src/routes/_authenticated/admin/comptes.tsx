@@ -37,7 +37,10 @@ function AccountsPage() {
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts"],
     queryFn: async () => {
-      const { data } = await supabase.from("service_accounts").select("*, service:services(name)").order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("service_accounts")
+        .select("id, service_id, account_label, login_email, recovery_email, renewal_date, status, total_slots, notes, internal_owner, last_rotation_date, created_at, service:services(name)")
+        .order("created_at", { ascending: false });
       return data || [];
     },
   });

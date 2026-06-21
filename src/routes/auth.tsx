@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ShieldCheck, Loader2 } from "lucide-react";
+import { checkHasAnyUser } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -16,6 +18,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const checkUsers = useServerFn(checkHasAnyUser);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,16 +26,19 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [firstUser, setFirstUser] = useState(false);
 
-  // Detect if there is already an admin: if not, default to signup
   useEffect(() => {
     (async () => {
-      const { count } = await supabase.from("user_roles").select("*", { count: "exact", head: true });
-      if (count === 0) {
-        setFirstUser(true);
-        setMode("signup");
+      try {
+        const res = await checkUsers();
+        if (!res.hasUsers) {
+          setFirstUser(true);
+          setMode("signup");
+        }
+      } catch {
+        // Ignore — fallback to sign-in
       }
     })();
-  }, []);
+  }, [checkUsers]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -15,6 +15,22 @@ export const verifyAccessCode = createServerFn({ method: "POST" })
     const { hashAccessCode, signClientToken } = await import("./crypto.server");
     const hash = hashAccessCode(data.code);
 
+    // Rate limiting: max 5 attempts per code hash in 15 minutes
+    const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: recentAttempts } = await (supabaseAdmin as any)
+      .from("login_attempts")
+      .select("*", { count: "exact", head: true })
+      .eq("code_hash", hash)
+      .gte("attempted_at", fifteenMinAgo);
+
+    if ((recentAttempts ?? 0) >= 5) {
+      return { ok: false as const, error: "Trop de tentatives. Réessayez dans 15 minutes." };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabaseAdmin as any).from("login_attempts").insert({ code_hash: hash });
+
     const { data: codeRow } = await supabaseAdmin
       .from("client_access_codes")
       .select("id, client_id, expires_at, is_active")
