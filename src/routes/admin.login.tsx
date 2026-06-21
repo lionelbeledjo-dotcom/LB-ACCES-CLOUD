@@ -8,8 +8,12 @@ import { ShieldCheck, Loader2, ArrowLeft } from "lucide-react";
 export const Route = createFileRoute("/admin/login")({
   ssr: false,
   beforeLoad: async () => {
-    const { data } = await supabase.auth.getSession();
-    if (data.session) throw redirect({ to: "/admin/dashboard" });
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) throw redirect({ to: "/admin/dashboard" });
+    } catch (e) {
+      if (e && typeof e === "object" && "to" in e) throw e;
+    }
   },
   component: AdminLoginPage,
 });

@@ -2,18 +2,12 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ShieldCheck, KeyRound, Lock, LifeBuoy, Eye } from "lucide-react";
+import { ShieldCheck, KeyRound, Lock, LifeBuoy, Eye, EyeOff, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/BrandLogo";
 import { verifyAccessCode } from "@/lib/access.functions";
 
 export const Route = createFileRoute("/client/access")({
-  head: () => ({
-    meta: [
-      { title: "LB Access Cloud — Accès client sécurisé" },
-      { name: "description", content: "Entrez votre code d'accès privé pour consulter vos abonnements et profils." },
-    ],
-  }),
   component: ClientAccessPage,
 });
 
@@ -67,18 +61,18 @@ function ClientAccessPage() {
               LB Access Cloud vous donne accès à vos abonnements et profils en toute sécurité, depuis un seul code privé.
             </p>
             <ul className="space-y-3 text-sm">
-              {[
-                { icon: KeyRound, text: "Un code privé unique, à usage personnel" },
-                { icon: Lock, text: "Informations chiffrées, jamais partagées" },
-                { icon: LifeBuoy, text: "Support WhatsApp à portée de main" },
-              ].map((f) => (
-                <li key={f.text} className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-lg bg-accent text-accent-foreground flex items-center justify-center">
-                    <f.icon className="w-4 h-4" />
-                  </span>
-                  <span>{f.text}</span>
-                </li>
-              ))}
+              <li className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-accent text-accent-foreground flex items-center justify-center"><KeyRound className="w-4 h-4" /></span>
+                <span>Un code privé unique, à usage personnel</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-accent text-accent-foreground flex items-center justify-center"><Lock className="w-4 h-4" /></span>
+                <span>Informations chiffrées, jamais partagées</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-accent text-accent-foreground flex items-center justify-center"><LifeBuoy className="w-4 h-4" /></span>
+                <span>Support WhatsApp à portée de main</span>
+              </li>
             </ul>
           </div>
 
@@ -157,80 +151,69 @@ function ClientAccessPage() {
       </main>
 
       <footer className="px-6 py-6 text-center text-xs text-muted-foreground">
-        &copy; {new Date().getFullYear()} LB Access Cloud &middot; Plateforme de gestion d'accès premium
+        &copy; 2024 LB Access Cloud &middot; Plateforme de gestion d'accès premium
       </footer>
     </div>
   );
 }
 
 // ========== DEMO PORTAL ==========
-const DEMO_CLIENT = {
-  full_name: "Client Démo",
-  phone: "+237 600 000 000",
-  status: "actif",
-};
-
-const DEMO_PROFILES = [
-  {
-    id: "demo-netflix",
-    service: "Netflix",
-    account: "Netflix Famille 01",
-    profile_name: "Profil 3",
-    profile_number: 3,
-    pin: "1234",
-    email: "lb.netflix.demo@exemple.com",
-    password: "D3m0P@ss!Netfl1x",
-    end_date: new Date(Date.now() + 30 * 86400000).toISOString(),
-    instructions: "Connectez-vous sur netflix.com avec les identifiants fournis. Sélectionnez le profil indiqué.",
-  },
-  {
-    id: "demo-prime",
-    service: "Prime Video",
-    account: "Prime Video FR",
-    profile_name: "Accès 1",
-    profile_number: 1,
-    pin: null,
-    email: "lb.prime.demo@exemple.com",
-    password: "D3m0P@ss!Pr1me",
-    end_date: new Date(Date.now() + 25 * 86400000).toISOString(),
-    instructions: "Connectez-vous sur primevideo.com avec les identifiants fournis.",
-  },
-  {
-    id: "demo-canva",
-    service: "Canva Pro",
-    account: "Canva Pro Team",
-    profile_name: "Équipe 2",
-    profile_number: 2,
-    pin: null,
-    email: "lb.canva.demo@exemple.com",
-    password: "D3m0P@ss!C4nva",
-    end_date: new Date(Date.now() + 20 * 86400000).toISOString(),
-    instructions: "Connectez-vous sur canva.com avec les identifiants fournis. Accès Pro complet.",
-  },
-  {
-    id: "demo-capcut",
-    service: "CapCut Pro",
-    account: "CapCut Pro",
-    profile_name: "Accès 1",
-    profile_number: 1,
-    pin: null,
-    email: "lb.capcut.demo@exemple.com",
-    password: "D3m0P@ss!C4pCut",
-    end_date: new Date(Date.now() + 15 * 86400000).toISOString(),
-    instructions: "Connectez-vous sur capcut.com ou dans l'app CapCut avec les identifiants fournis.",
-  },
-];
-
-function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
-}
-
-function daysLeft(d: string) {
-  return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
+function getDemoProfiles() {
+  return [
+    {
+      id: "demo-netflix",
+      service: "Netflix",
+      account: "Netflix Famille 01",
+      profile_name: "Profil 3",
+      profile_number: 3,
+      pin: "1234",
+      email: "lb.netflix.demo@exemple.com",
+      password: "D3m0P@ss!Netfl1x",
+      daysLeft: 30,
+      instructions: "Connectez-vous sur netflix.com avec les identifiants fournis. Sélectionnez le profil indiqué.",
+    },
+    {
+      id: "demo-prime",
+      service: "Prime Video",
+      account: "Prime Video FR",
+      profile_name: "Accès 1",
+      profile_number: 1,
+      pin: null,
+      email: "lb.prime.demo@exemple.com",
+      password: "D3m0P@ss!Pr1me",
+      daysLeft: 25,
+      instructions: "Connectez-vous sur primevideo.com avec les identifiants fournis.",
+    },
+    {
+      id: "demo-canva",
+      service: "Canva Pro",
+      account: "Canva Pro Team",
+      profile_name: "Équipe 2",
+      profile_number: 2,
+      pin: null,
+      email: "lb.canva.demo@exemple.com",
+      password: "D3m0P@ss!C4nva",
+      daysLeft: 20,
+      instructions: "Connectez-vous sur canva.com avec les identifiants fournis. Accès Pro complet.",
+    },
+    {
+      id: "demo-capcut",
+      service: "CapCut Pro",
+      account: "CapCut Pro",
+      profile_name: "Accès 1",
+      profile_number: 1,
+      pin: null,
+      email: "lb.capcut.demo@exemple.com",
+      password: "D3m0P@ss!C4pCut",
+      daysLeft: 15,
+      instructions: "Connectez-vous sur capcut.com ou dans l'app CapCut avec les identifiants fournis.",
+    },
+  ];
 }
 
 function DemoPortal({ onBack }: { onBack: () => void }) {
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const profiles = getDemoProfiles();
 
   return (
     <div className="min-h-screen">
@@ -245,110 +228,111 @@ function DemoPortal({ onBack }: { onBack: () => void }) {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {/* En-tête client */}
         <section className="card-elegant p-6 sm:p-8 relative overflow-hidden">
           <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-15 blur-3xl" style={{ background: "var(--gold)" }} />
           <div className="relative">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Bienvenue</p>
-            <h1 className="font-display text-3xl sm:text-4xl font-semibold mt-1">{DEMO_CLIENT.full_name}</h1>
+            <h1 className="font-display text-3xl sm:text-4xl font-semibold mt-1">Client Démo</h1>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[color-mix(in_oklab,var(--success)_15%,transparent)] text-[color:var(--success)] text-xs font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-current" /> Actif
               </span>
-              <span className="text-xs text-muted-foreground">{DEMO_CLIENT.phone}</span>
+              <span className="text-xs text-muted-foreground">+237 600 000 000</span>
               <span className="text-xs text-muted-foreground">Code : LB-DEMO-001</span>
             </div>
             <p className="text-muted-foreground mt-2 text-sm">Voici vos abonnements et accès assignés.</p>
           </div>
         </section>
 
-        {/* Section Mes accès */}
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2">
           <h2 className="font-display text-lg font-semibold">Mes accès</h2>
-          <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">{DEMO_PROFILES.length} services</span>
+          <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">4 services</span>
         </div>
 
         <div className="grid md:grid-cols-2 gap-5">
-          {DEMO_PROFILES.map((p) => {
+          {profiles.map((p) => {
             const isRevealed = revealed[p.id] || false;
-            const days = daysLeft(p.end_date);
-            const expiringSoon = days <= 7;
 
             return (
               <div key={p.id} className="card-elegant p-5 sm:p-6 flex flex-col gap-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="w-12 h-12 rounded-xl bg-[color-mix(in_oklab,var(--primary)_12%,transparent)] text-[color:var(--primary)] flex items-center justify-center">
-                      <ServiceIcon service={p.service} />
+                    <span className="w-12 h-12 rounded-xl bg-[color-mix(in_oklab,var(--primary)_12%,transparent)] text-[color:var(--primary)] flex items-center justify-center font-display font-bold text-lg">
+                      {p.service[0]}
                     </span>
                     <div>
                       <h3 className="font-display text-xl font-semibold leading-tight">{p.service}</h3>
                       <p className="text-xs text-muted-foreground">{p.account}</p>
                     </div>
                   </div>
-                  <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${expiringSoon ? "bg-[color-mix(in_oklab,var(--warning)_15%,transparent)] text-[color:var(--warning)]" : "bg-[color-mix(in_oklab,var(--success)_15%,transparent)] text-[color:var(--success)]"}`}>
+                  <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${p.daysLeft <= 7 ? "bg-[color-mix(in_oklab,var(--warning)_15%,transparent)] text-[color:var(--warning)]" : "bg-[color-mix(in_oklab,var(--success)_15%,transparent)] text-[color:var(--success)]"}`}>
                     <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                    {expiringSoon ? "Expire bientôt" : "Actif"}
+                    {p.daysLeft <= 7 ? "Expire bientôt" : "Actif"}
                   </span>
                 </div>
 
                 <dl className="grid grid-cols-1 gap-2.5 text-sm">
-                  <InfoRow label="Profil / Place" value={`${p.profile_name} · n° ${p.profile_number}`} />
-                  {p.pin && <InfoRow label="PIN du profil" value={p.pin} mono />}
-                  <InfoRow label="Email de connexion" value={p.email} copyable />
-
-                  {/* Mot de passe */}
                   <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-accent/40">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <span className="text-xs text-muted-foreground shrink-0">Mot de passe</span>
-                      <span className="font-mono text-sm truncate">
-                        {isRevealed ? p.password : "••••••••••"}
-                      </span>
+                    <span className="text-xs text-muted-foreground">Profil / Place</span>
+                    <span className="font-medium">{p.profile_name} &middot; n&deg; {p.profile_number}</span>
+                  </div>
+                  {p.pin && (
+                    <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-accent/40">
+                      <span className="text-xs text-muted-foreground">PIN</span>
+                      <span className="font-mono">{p.pin}</span>
                     </div>
-                    <div className="flex gap-1 shrink-0">
+                  )}
+                  <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-accent/40">
+                    <span className="text-xs text-muted-foreground">Email</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm truncate max-w-[180px]">{p.email}</span>
+                      <button onClick={() => { navigator.clipboard.writeText(p.email); toast.success("Email copié"); }} className="p-1 rounded hover:bg-background"><Copy className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-accent/40">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Mot de passe</span>
+                      <span className="font-mono text-sm">{isRevealed ? p.password : "••••••••••"}</span>
+                    </div>
+                    <div className="flex gap-1">
                       {isRevealed && (
-                        <button
-                          onClick={() => { navigator.clipboard.writeText(p.password); toast.success("Mot de passe copié"); }}
-                          className="p-1.5 rounded-md hover:bg-background"
-                          title="Copier"
-                        >
-                          <CopyIcon />
-                        </button>
+                        <button onClick={() => { navigator.clipboard.writeText(p.password); toast.success("Mot de passe copié"); }} className="p-1 rounded hover:bg-background"><Copy className="w-3.5 h-3.5" /></button>
                       )}
                       <button
                         onClick={() => setRevealed((r) => ({ ...r, [p.id]: !isRevealed }))}
-                        className="px-2 py-1.5 rounded-md text-xs bg-primary text-primary-foreground hover:opacity-95 inline-flex items-center gap-1"
+                        className="px-2 py-1 rounded text-xs bg-primary text-primary-foreground inline-flex items-center gap-1"
                       >
-                        {isRevealed ? "Masquer" : "Afficher"}
+                        {isRevealed ? <><EyeOff className="w-3 h-3" /> Masquer</> : <><Eye className="w-3 h-3" /> Afficher</>}
                       </button>
                     </div>
                   </div>
 
-                  <InfoRow label="Expiration" value={`${fmtDate(p.end_date)} (${days}j restants)`} />
+                  <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-accent/40">
+                    <span className="text-xs text-muted-foreground">Expiration</span>
+                    <span className="text-sm font-medium">{p.daysLeft} jours restants</span>
+                  </div>
                 </dl>
 
-                {p.instructions && (
-                  <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 leading-relaxed">
-                    <strong className="text-foreground">Instructions :</strong> {p.instructions}
-                  </div>
-                )}
+                <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 leading-relaxed">
+                  <strong className="text-foreground">Instructions :</strong> {p.instructions}
+                </div>
               </div>
             );
           })}
         </div>
 
-        {/* Section Renouvellements */}
         <section className="card-elegant p-6">
           <h2 className="font-display text-lg font-semibold mb-4">Mes renouvellements</h2>
           <div className="space-y-3">
-            {DEMO_PROFILES.filter((p) => daysLeft(p.end_date) <= 20).map((p) => (
+            {profiles.filter((p) => p.daysLeft <= 20).map((p) => (
               <div key={p.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/40">
                 <div>
                   <p className="text-sm font-medium">{p.service}</p>
-                  <p className="text-xs text-muted-foreground">Expire le {fmtDate(p.end_date)} &middot; {daysLeft(p.end_date)}j restants</p>
+                  <p className="text-xs text-muted-foreground">{p.daysLeft} jours restants</p>
                 </div>
-                <button className="text-xs px-3 py-1.5 rounded-lg bg-[color-mix(in_oklab,var(--gold)_20%,transparent)] text-[color:var(--gold-foreground)] font-medium hover:opacity-90">
+                <button className="text-xs px-3 py-1.5 rounded-lg bg-[color-mix(in_oklab,var(--gold)_20%,transparent)] text-[color:var(--gold-foreground)] font-medium">
                   Demander le renouvellement
                 </button>
               </div>
@@ -356,7 +340,6 @@ function DemoPortal({ onBack }: { onBack: () => void }) {
           </div>
         </section>
 
-        {/* Section Sécurité */}
         <section className="card-elegant p-6">
           <h2 className="font-display text-lg font-semibold mb-3">Sécurité</h2>
           <ul className="space-y-2 text-sm text-muted-foreground">
@@ -368,38 +351,4 @@ function DemoPortal({ onBack }: { onBack: () => void }) {
       </main>
     </div>
   );
-}
-
-function InfoRow({ label, value, mono, copyable }: { label: string; value: string; mono?: boolean; copyable?: boolean }) {
-  return (
-    <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-accent/40">
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-xs text-muted-foreground shrink-0">{label}</span>
-        <span className={`truncate ${mono ? "font-mono" : ""}`}>{value}</span>
-      </div>
-      {copyable && (
-        <button onClick={() => { navigator.clipboard.writeText(value); toast.success(`${label} copié`); }} className="p-1.5 rounded-md hover:bg-background shrink-0" title="Copier">
-          <CopyIcon />
-        </button>
-      )}
-    </div>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="14" height="14" x="8" y="8" rx="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-    </svg>
-  );
-}
-
-function ServiceIcon({ service }: { service: string }) {
-  const icons: Record<string, string> = {
-    "Netflix": "N",
-    "Prime Video": "P",
-    "Canva Pro": "C",
-    "CapCut Pro": "CC",
-  };
-  return <span className="font-display font-bold text-lg">{icons[service] || service[0]}</span>;
 }
