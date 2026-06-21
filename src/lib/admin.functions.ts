@@ -10,7 +10,8 @@ async function logAudit(userId: string, action: string, meta: Record<string, unk
     user_id: userId,
     client_id: clientId ?? null,
     action,
-    metadata: meta,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    metadata: meta as any,
   });
 }
 
