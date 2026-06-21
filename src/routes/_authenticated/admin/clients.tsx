@@ -46,7 +46,8 @@ function ClientsPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (payload: Partial<Client>) => save({ data: payload as Parameters<typeof save>[0]["data"] }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mutationFn: async (payload: Partial<Client>) => save({ data: payload as any }),
     onSuccess: () => {
       toast.success("Client enregistré");
       setEditing(null);
