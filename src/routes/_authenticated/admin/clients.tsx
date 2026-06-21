@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Search, KeyRound, Edit2, Trash2, Copy, Eye } from "lucide-react";
+import { Plus, Search, KeyRound, Edit2, Trash2, Copy, Eye, MessageCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader, Modal, Field, inputCls, btnPrimary, btnGhost, btnDanger, btnGold, EmptyState } from "@/components/admin-ui";
 import { StatusBadge, clientStatusMeta } from "@/components/StatusBadge";
@@ -35,6 +35,7 @@ function ClientsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [editing, setEditing] = useState<Partial<Client> | null>(null);
   const [generatedCode, setGeneratedCode] = useState<{ clientName: string; code: string; clientId: string } | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 
   const { data: welcomeTemplate } = useQuery({
     queryKey: ["template-welcome"],
@@ -58,7 +59,6 @@ function ClientsPage() {
   });
 
   const saveMutation = useMutation({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: async (payload: Partial<Client>) => save({ data: payload as any }),
     onSuccess: () => {
       toast.success("Client enregistré");
@@ -105,6 +105,7 @@ function ClientsPage() {
         }
       />
 
+      {/* Filters */}
       <div className="card-elegant p-4 mb-5 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -115,18 +116,88 @@ function ClientsPage() {
             className={`${inputCls} pl-9`}
           />
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={`${inputCls} sm:w-56`}>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={`${inputCls} sm:w-48`}>
           <option value="">Tous les statuts</option>
           {Object.entries(clientStatusMeta).map(([k, v]) => (
             <option key={k} value={k}>{v.label}</option>
           ))}
         </select>
+        <div className="flex gap-1 border border-border rounded-lg p-0.5">
+          <button onClick={() => setViewMode("cards")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "cards" ? "bg-[color-mix(in_oklab,var(--gold)_15%,transparent)] text-[color:var(--gold)]" : "text-muted-foreground"}`}>
+            Cartes
+          </button>
+          <button onClick={() => setViewMode("table")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "table" ? "bg-[color-mix(in_oklab,var(--gold)_15%,transparent)] text-[color:var(--gold)]" : "text-muted-foreground"}`}>
+            Tableau
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
-        <div className="card-elegant h-64 animate-pulse" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="card-elegant h-48 animate-pulse" />)}
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState title="Aucun client" hint="Créez votre premier client pour commencer." />
+      ) : viewMode === "cards" ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((c) => {
+            const meta = clientStatusMeta[c.status] || clientStatusMeta.actif;
+            return (
+              <div key={c.id} className="card-service p-5 flex flex-col gap-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[color:var(--primary)] to-[color:var(--primary)]/50 flex items-center justify-center text-white font-bold text-sm">
+                      {c.full_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <Link to="/admin/clients/$id" params={{ id: c.id }} className="font-semibold text-sm hover:text-[color:var(--gold)] transition-colors truncate block">
+                        {c.full_name}
+                      </Link>
+                      <p className="text-xs text-muted-foreground truncate">{c.city || "—"}</p>
+                    </div>
+                  </div>
+                  <StatusBadge label={meta.label} tone={meta.tone} />
+                </div>
+
+                <div className="space-y-2">
+                  {c.phone && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>{c.phone}</span>
+                    </div>
+                  )}
+                  {c.email && (
+                    <div className="text-xs text-muted-foreground truncate">{c.email}</div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 mt-auto pt-3 border-t border-border">
+                  <button onClick={() => codeMutation.mutate({ id: c.id })} title="Générer code" className="p-2 rounded-lg hover:bg-[color-mix(in_oklab,var(--gold)_15%,transparent)] transition-colors">
+                    <KeyRound className="w-4 h-4 text-[color:var(--gold)]" />
+                  </button>
+                  <Link to="/admin/clients/$id" params={{ id: c.id }} className="p-2 rounded-lg hover:bg-accent transition-colors" title="Détails">
+                    <Eye className="w-4 h-4" />
+                  </Link>
+                  <button onClick={() => setEditing(c)} title="Modifier" className="p-2 rounded-lg hover:bg-accent transition-colors">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  {c.whatsapp || c.phone ? (
+                    <a href={`https://wa.me/${(c.whatsapp || c.phone || "").replace(/\D/g, "")}`} target="_blank" rel="noreferrer" title="WhatsApp" className="p-2 rounded-lg hover:bg-[color-mix(in_oklab,var(--success)_15%,transparent)] transition-colors ml-auto">
+                      <MessageCircle className="w-4 h-4 text-[color:var(--success)]" />
+                    </a>
+                  ) : null}
+                  <button
+                    onClick={() => { if (confirm(`Supprimer ${c.full_name} ?`)) deleteMutation.mutate(c.id); }}
+                    title="Supprimer"
+                    className="p-2 rounded-lg hover:bg-[color-mix(in_oklab,var(--destructive)_12%,transparent)] transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4 text-[color:var(--destructive)]" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <div className="card-elegant overflow-hidden">
           <div className="overflow-x-auto">
@@ -144,9 +215,9 @@ function ClientsPage() {
                 {filtered.map((c) => {
                   const meta = clientStatusMeta[c.status] || clientStatusMeta.actif;
                   return (
-                    <tr key={c.id} className="hover:bg-muted/30">
+                    <tr key={c.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3">
-                        <Link to="/admin/clients/$id" params={{ id: c.id }} className="font-medium hover:underline">{c.full_name}</Link>
+                        <Link to="/admin/clients/$id" params={{ id: c.id }} className="font-medium hover:text-[color:var(--gold)] transition-colors">{c.full_name}</Link>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
                         <div>{c.phone || "—"}</div>
@@ -157,7 +228,7 @@ function ClientsPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
                           <button onClick={() => codeMutation.mutate({ id: c.id })} title="Générer code" className="p-2 rounded-md hover:bg-accent">
-                            <KeyRound className="w-4 h-4" />
+                            <KeyRound className="w-4 h-4 text-[color:var(--gold)]" />
                           </button>
                           <Link to="/admin/clients/$id" params={{ id: c.id }} className="p-2 rounded-md hover:bg-accent" title="Voir">
                             <Eye className="w-4 h-4" />
@@ -166,9 +237,7 @@ function ClientsPage() {
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => {
-                              if (confirm(`Supprimer ${c.full_name} ?`)) deleteMutation.mutate(c.id);
-                            }}
+                            onClick={() => { if (confirm(`Supprimer ${c.full_name} ?`)) deleteMutation.mutate(c.id); }}
                             title="Supprimer"
                             className="p-2 rounded-md hover:bg-[color-mix(in_oklab,var(--destructive)_12%,transparent)] text-[color:var(--destructive)]"
                           >
@@ -185,15 +254,10 @@ function ClientsPage() {
         </div>
       )}
 
+      {/* Client form modal */}
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? "Modifier le client" : "Nouveau client"} size="lg">
         {editing && (
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              saveMutation.mutate(editing);
-            }}
-          >
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(editing); }}>
             <div className="grid sm:grid-cols-2 gap-4">
               <Field label="Nom complet *">
                 <input className={inputCls} value={editing.full_name || ""} onChange={(e) => setEditing({ ...editing, full_name: e.target.value })} required />
@@ -227,16 +291,17 @@ function ClientsPage() {
         )}
       </Modal>
 
+      {/* Code generated modal */}
       <Modal open={!!generatedCode} onClose={() => setGeneratedCode(null)} title="Code d'accès généré">
         {generatedCode && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <p className="text-sm text-muted-foreground">
               Code privé pour <strong className="text-foreground">{generatedCode.clientName}</strong>. Notez-le maintenant, il ne sera plus affiché.
             </p>
-            <div className="p-5 rounded-xl bg-[color-mix(in_oklab,var(--gold)_15%,transparent)] border border-[color-mix(in_oklab,var(--gold)_40%,transparent)] text-center">
-              <p className="font-mono text-2xl font-semibold tracking-widest">{generatedCode.code}</p>
+            <div className="p-6 rounded-xl bg-[color-mix(in_oklab,var(--gold)_10%,transparent)] border border-[color-mix(in_oklab,var(--gold)_30%,transparent)] text-center glow-gold">
+              <p className="font-mono text-3xl font-bold tracking-widest text-[color:var(--gold)]">{generatedCode.code}</p>
             </div>
-            <div className="flex gap-2 justify-between">
+            <div className="flex gap-3 justify-between">
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(generatedCode.code);
@@ -244,7 +309,7 @@ function ClientsPage() {
                 }}
                 className={btnGhost}
               >
-                <Copy className="w-4 h-4" /> Copier
+                <Copy className="w-4 h-4" /> Copier le code
               </button>
               <button
                 onClick={() => {
@@ -259,14 +324,14 @@ function ClientsPage() {
                       .replace("{{code}}", generatedCode.code)
                       .replace("{{date_expiration}}", "—");
                   } else {
-                    msg = `Bonjour ${generatedCode.clientName}, votre espace client LB Access Cloud est prêt.\n\nConnectez-vous sur ${window.location.origin}\nCode d'accès : ${generatedCode.code}\n\nMerci de ne pas partager ce code.\n\n— LB Access Cloud`;
+                    msg = `Bonjour ${generatedCode.clientName}, votre espace client LB Access Cloud est prêt.\n\nConnectez-vous sur ${window.location.origin}/client/access\nCode d'accès : ${generatedCode.code}\n\nMerci de ne pas partager ce code.\n\n— LB Access Cloud`;
                   }
                   if (tel) window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank");
                   else toast.error("Aucun numéro WhatsApp enregistré");
                 }}
-                className={btnPrimary}
+                className={btnGold}
               >
-                Envoyer via WhatsApp
+                <MessageCircle className="w-4 h-4" /> Envoyer via WhatsApp
               </button>
             </div>
           </div>

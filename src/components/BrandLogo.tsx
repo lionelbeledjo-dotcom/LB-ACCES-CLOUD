@@ -9,7 +9,7 @@ export function BrandLogo({ size = "md", inverted = false }: { size?: "sm" | "md
   return (
     <Link to="/" className="inline-flex items-center gap-3 group">
       <span
-        className={`${sizes.box} rounded-xl flex items-center justify-center font-display font-bold shadow-gold`}
+        className={`${sizes.box} rounded-xl flex items-center justify-center font-display font-bold glow-gold`}
         style={{
           background: "linear-gradient(135deg, var(--gold), color-mix(in oklab, var(--gold) 70%, white))",
           color: "var(--gold-foreground)",

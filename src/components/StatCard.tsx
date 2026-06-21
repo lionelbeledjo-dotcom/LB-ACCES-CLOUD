@@ -25,22 +25,22 @@ export function StatCard({
       : "var(--primary)";
 
   return (
-    <div className="card-elegant p-5 flex flex-col gap-3 relative overflow-hidden">
+    <div className="card-elegant p-5 flex flex-col gap-3 relative overflow-hidden group hover:border-[color-mix(in_oklab,var(--gold)_20%,transparent)] transition-colors">
       <div
-        className="absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-15 blur-2xl"
+        className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-[0.08] blur-2xl group-hover:opacity-[0.12] transition-opacity"
         style={{ background: accentColor }}
       />
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">{label}</span>
+      <div className="relative flex items-center justify-between">
+        <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</span>
         <span
-          className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: `color-mix(in oklab, ${accentColor} 14%, transparent)`, color: accentColor }}
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ background: `color-mix(in oklab, ${accentColor} 12%, transparent)`, color: accentColor }}
         >
-          <Icon className="w-4 h-4" />
+          <Icon className="w-5 h-5" />
         </span>
       </div>
-      <div className="font-display text-3xl font-semibold tracking-tight">{value}</div>
-      {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
+      <div className="relative font-display text-3xl font-bold tracking-tight">{value}</div>
+      {hint && <div className="relative text-xs text-muted-foreground">{hint}</div>}
     </div>
   );
 }

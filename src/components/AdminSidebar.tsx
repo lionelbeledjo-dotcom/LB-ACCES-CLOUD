@@ -19,7 +19,7 @@ const items = [
   { to: "/admin/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { to: "/admin/clients", label: "Clients", icon: Users },
   { to: "/admin/services", label: "Services", icon: Package },
-  { to: "/admin/comptes", label: "Comptes service", icon: KeyRound },
+  { to: "/admin/comptes", label: "Comptes source", icon: KeyRound },
   { to: "/admin/profils", label: "Profils & slots", icon: Layers },
   { to: "/admin/paiements", label: "Paiements", icon: CreditCard },
   { to: "/admin/alertes", label: "Alertes", icon: Bell },
@@ -41,7 +41,7 @@ export function AdminSidebar() {
       <div className="p-5 border-b border-sidebar-border">
         <BrandLogo size="md" inverted />
       </div>
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {items.map((it) => {
           const active = pathname === it.to || pathname.startsWith(it.to + "/");
           return (
@@ -49,14 +49,15 @@ export function AdminSidebar() {
               key={it.to}
               to={it.to}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all",
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all",
                 active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm border-l-2 border-[color:var(--gold)]"
-                  : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm border border-[color-mix(in_oklab,var(--gold)_20%,transparent)]"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground border border-transparent",
               )}
             >
-              <it.icon className="w-4 h-4 shrink-0" />
+              <it.icon className={cn("w-4.5 h-4.5 shrink-0", active && "text-[color:var(--gold)]")} />
               <span className="truncate">{it.label}</span>
+              {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[color:var(--gold)]" />}
             </Link>
           );
         })}
@@ -64,7 +65,7 @@ export function AdminSidebar() {
       <div className="p-3 border-t border-sidebar-border">
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/70 hover:bg-[color-mix(in_oklab,var(--destructive)_10%,transparent)] hover:text-[color:var(--destructive)] transition-colors"
         >
           <LogOut className="w-4 h-4" />
           Se déconnecter
@@ -89,10 +90,10 @@ export function AdminMobileNav() {
               key={it.to}
               to={it.to}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap shrink-0 border",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap shrink-0 border transition-colors",
                 active
                   ? "bg-[color:var(--gold)] text-[color:var(--gold-foreground)] border-transparent"
-                  : "border-sidebar-border text-sidebar-foreground/80",
+                  : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/40",
               )}
             >
               <it.icon className="w-3.5 h-3.5" />
