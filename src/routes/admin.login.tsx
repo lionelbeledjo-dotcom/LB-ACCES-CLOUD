@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ShieldCheck, Loader2, ArrowLeft } from "lucide-react";
+import { checkHasAnyUser } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/admin/login")({
   ssr: false,
@@ -18,22 +20,67 @@ export const Route = createFileRoute("/admin/login")({
   component: AdminLoginPage,
 });
 
+type Mode = "signin" | "signup" | "reset";
+
 function AdminLoginPage() {
   const navigate = useNavigate();
+  const checkUsers = useServerFn(checkHasAnyUser);
+  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [resetSent, setResetSent] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
+      if (mode === "reset") {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + "/admin/login",
+        });
+        if (resetError) {
+          setError(resetError.message);
+          return;
+        }
+        setResetSent(true);
+        toast.success("Email de réinitialisation envoyé");
+        return;
+      }
+
+      if (mode === "signup") {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName },
+            emailRedirectTo: window.location.origin + "/admin/dashboard",
+          },
+        });
+        if (signUpError) {
+          setError(signUpError.message);
+          return;
+        }
+        toast.success("Compte créé ! Vérifiez votre email pour confirmer.");
+        const { data: sess } = await supabase.auth.getSession();
+        if (sess.session) {
+          navigate({ to: "/admin/dashboard" });
+        } else {
+          setMode("signin");
+        }
+        return;
+      }
+
+      // Sign in
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) {
         if (authError.message.includes("Invalid login")) {
           setError("Email ou mot de passe incorrect.");
+        } else if (authError.message.includes("Email not confirmed")) {
+          setError("Veuillez confirmer votre email avant de vous connecter.");
         } else {
           setError(authError.message);
         }
@@ -71,9 +118,15 @@ function AdminLoginPage() {
               </span>
             </div>
 
-            <h1 className="font-display text-2xl font-semibold">Connexion administrateur</h1>
+            <h1 className="font-display text-2xl font-semibold">
+              {mode === "signup" ? "Créer un compte admin" : mode === "reset" ? "Réinitialiser le mot de passe" : "Connexion administrateur"}
+            </h1>
             <p className="text-sm text-muted-foreground mt-1.5">
-              Accédez à la console de gestion LB Access Cloud.
+              {mode === "signup"
+                ? "Créez votre compte pour accéder à la console de gestion."
+                : mode === "reset"
+                  ? "Entrez votre email pour recevoir un lien de réinitialisation."
+                  : "Accédez à la console de gestion LB Access Cloud."}
             </p>
 
             {error && (
@@ -82,47 +135,115 @@ function AdminLoginPage() {
               </div>
             )}
 
-            <form className="mt-6 space-y-4" onSubmit={submit}>
-              <div>
-                <label className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  autoFocus
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="mt-1.5 w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                  placeholder="admin@example.com"
-                />
+            {resetSent ? (
+              <div className="mt-6 p-4 rounded-lg bg-[color-mix(in_oklab,var(--success)_10%,transparent)] border border-[color-mix(in_oklab,var(--success)_30%,transparent)]">
+                <p className="text-sm text-[color:var(--success)] font-medium">
+                  Un email de réinitialisation a été envoyé à {email}. Vérifiez votre boîte de réception.
+                </p>
+                <button
+                  onClick={() => { setResetSent(false); setMode("signin"); }}
+                  className="mt-3 text-xs text-primary font-medium hover:underline"
+                >
+                  Retour à la connexion
+                </button>
               </div>
-              <div>
-                <label className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                  Mot de passe
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                  className="mt-1.5 w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                  placeholder="••••••••"
-                />
+            ) : (
+              <form className="mt-6 space-y-4" onSubmit={submit}>
+                {mode === "signup" && (
+                  <div>
+                    <label className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Nom complet
+                    </label>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      className="mt-1.5 w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                      placeholder="Votre nom"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    autoFocus
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="mt-1.5 w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                    placeholder="admin@example.com"
+                  />
+                </div>
+
+                {mode !== "reset" && (
+                  <div>
+                    <label className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Mot de passe
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={8}
+                      className="mt-1.5 w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium shadow-elegant hover:opacity-95 transition-opacity disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                >
+                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {mode === "signup" ? "Créer mon compte" : mode === "reset" ? "Envoyer le lien" : "Se connecter"}
+                </button>
+              </form>
+            )}
+
+            {!resetSent && (
+              <div className="mt-5 space-y-2 text-center">
+                {mode === "signin" && (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      Pas encore de compte ?{" "}
+                      <button onClick={() => { setMode("signup"); setError(""); }} className="text-primary font-medium hover:underline">
+                        Créer un compte
+                      </button>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      <button onClick={() => { setMode("reset"); setError(""); }} className="text-primary font-medium hover:underline">
+                        Mot de passe oublié ?
+                      </button>
+                    </p>
+                  </>
+                )}
+                {mode === "signup" && (
+                  <p className="text-xs text-muted-foreground">
+                    Déjà un compte ?{" "}
+                    <button onClick={() => { setMode("signin"); setError(""); }} className="text-primary font-medium hover:underline">
+                      Se connecter
+                    </button>
+                  </p>
+                )}
+                {mode === "reset" && (
+                  <p className="text-xs text-muted-foreground">
+                    <button onClick={() => { setMode("signin"); setError(""); }} className="text-primary font-medium hover:underline">
+                      Retour à la connexion
+                    </button>
+                  </p>
+                )}
               </div>
+            )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium shadow-elegant hover:opacity-95 transition-opacity disabled:opacity-50 inline-flex items-center justify-center gap-2"
-              >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Se connecter
-              </button>
-            </form>
-
-            <p className="text-[11px] text-muted-foreground mt-6 text-center">
+            <p className="text-[11px] text-muted-foreground mt-5 text-center">
               Accès réservé aux administrateurs autorisés. Chaque connexion est enregistrée.
             </p>
           </div>
