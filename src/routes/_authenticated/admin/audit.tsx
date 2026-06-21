@@ -33,7 +33,7 @@ function AuditPage() {
     queryKey: ["audit-logs"],
     queryFn: async () => (await supabase
       .from("audit_logs")
-      .select("*, client:clients(full_name), user:admin_profiles(full_name, email)")
+      .select("*, client:clients(full_name)")
       .order("created_at", { ascending: false }).limit(200)).data || [],
   });
 
@@ -61,13 +61,12 @@ function AuditPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((l) => {
-                const u = l.user as { full_name: string; email: string } | null;
                 const c = l.client as { full_name: string } | null;
                 return (
                   <tr key={l.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3 text-xs whitespace-nowrap text-muted-foreground">{new Date(l.created_at).toLocaleString("fr-FR")}</td>
                     <td className="px-4 py-3"><span className="text-xs font-medium px-2 py-1 rounded-md bg-accent text-accent-foreground">{actionLabels[l.action] || l.action}</span></td>
-                    <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">{u?.full_name || u?.email || "—"}</td>
+                    <td className="px-4 py-3 hidden md:table-cell text-muted-foreground text-xs font-mono">{l.user_id ? l.user_id.slice(0, 8) : "—"}</td>
                     <td className="px-4 py-3 hidden md:table-cell">{c?.full_name || "—"}</td>
                     <td className="px-4 py-3 hidden lg:table-cell text-xs text-muted-foreground font-mono truncate max-w-[280px]">{l.metadata ? JSON.stringify(l.metadata) : ""}</td>
                   </tr>
