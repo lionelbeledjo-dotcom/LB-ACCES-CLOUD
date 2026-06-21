@@ -13,6 +13,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EspaceTokenRouteImport } from './routes/espace.$token'
+import { Route as ClientAccessRouteImport } from './routes/client.access'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminServicesRouteImport } from './routes/_authenticated/admin/services'
 import { Route as AuthenticatedAdminProfilsRouteImport } from './routes/_authenticated/admin/profils'
@@ -42,6 +44,16 @@ const IndexRoute = IndexRouteImport.update({
 const EspaceTokenRoute = EspaceTokenRouteImport.update({
   id: '/espace/$token',
   path: '/espace/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientAccessRoute = ClientAccessRouteImport.update({
+  id: '/client/access',
+  path: '/client/access',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -113,6 +125,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/admin/login': typeof AdminLoginRoute
+  '/client/access': typeof ClientAccessRoute
   '/espace/$token': typeof EspaceTokenRoute
   '/admin/alertes': typeof AuthenticatedAdminAlertesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -129,6 +143,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/admin/login': typeof AdminLoginRoute
+  '/client/access': typeof ClientAccessRoute
   '/espace/$token': typeof EspaceTokenRoute
   '/admin/alertes': typeof AuthenticatedAdminAlertesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -147,6 +163,8 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/admin/login': typeof AdminLoginRoute
+  '/client/access': typeof ClientAccessRoute
   '/espace/$token': typeof EspaceTokenRoute
   '/_authenticated/admin/alertes': typeof AuthenticatedAdminAlertesRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -165,6 +183,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/admin'
+    | '/admin/login'
+    | '/client/access'
     | '/espace/$token'
     | '/admin/alertes'
     | '/admin/audit'
@@ -181,6 +201,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/admin'
+    | '/admin/login'
+    | '/client/access'
     | '/espace/$token'
     | '/admin/alertes'
     | '/admin/audit'
@@ -198,6 +220,8 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/admin'
+    | '/admin/login'
+    | '/client/access'
     | '/espace/$token'
     | '/_authenticated/admin/alertes'
     | '/_authenticated/admin/audit'
@@ -215,6 +239,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  ClientAccessRoute: typeof ClientAccessRoute
   EspaceTokenRoute: typeof EspaceTokenRoute
 }
 
@@ -246,6 +272,20 @@ declare module '@tanstack/react-router' {
       path: '/espace/$token'
       fullPath: '/espace/$token'
       preLoaderRoute: typeof EspaceTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/access': {
+      id: '/client/access'
+      path: '/client/access'
+      fullPath: '/client/access'
+      preLoaderRoute: typeof ClientAccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -384,6 +424,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  ClientAccessRoute: ClientAccessRoute,
   EspaceTokenRoute: EspaceTokenRoute,
 }
 export const routeTree = rootRouteImport
