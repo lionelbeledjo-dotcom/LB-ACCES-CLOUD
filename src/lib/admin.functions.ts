@@ -179,7 +179,8 @@ export const saveServiceAccount = createServerFn({ method: "POST" })
         update.encrypted_password = encryptSecret(data.password);
         update.last_rotation_date = new Date().toISOString().slice(0, 10);
       }
-      const { error } = await context.supabase.from("service_accounts").update(update).eq("id", data.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await context.supabase.from("service_accounts").update(update as any).eq("id", data.id);
       if (error) throw new Error(error.message);
       await logAudit(context.userId, "service_account_updated", { id: data.id });
       return { id: data.id };
@@ -253,7 +254,8 @@ export const updateProfile = createServerFn({ method: "POST" })
     for (const [k, v] of Object.entries(rest)) {
       if (v !== undefined) payload[k] = v === "" ? null : v;
     }
-    const { error } = await context.supabase.from("service_profiles").update(payload).eq("id", id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await context.supabase.from("service_profiles").update(payload as any).eq("id", id);
     if (error) throw new Error(error.message);
     await logAudit(context.userId, "profile_updated", { id, fields: Object.keys(payload) });
     return { ok: true };
